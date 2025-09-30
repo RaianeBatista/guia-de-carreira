@@ -1,0 +1,311 @@
+import { NextRequest, NextResponse } from "next/server";
+
+// Configurações da API StackSpot (servidor)
+const STACKSPOT_CONFIG = {
+  IDM_URL:
+    process.env.NEXT_PUBLIC_STACKSPOT_IDM_URL || "https://idm.stackspot.com",
+  INFERENCE_URL:
+    process.env.NEXT_PUBLIC_STACKSPOT_INFERENCE_URL ||
+    "https://genai-inference-app.stackspot.com",
+  REALM: process.env.NEXT_PUBLIC_STACKSPOT_REALM || "",
+  CLIENT_ID: process.env.STACKSPOT_CLIENT_ID || "",
+  CLIENT_SECRET: process.env.STACKSPOT_CLIENT_SECRET || "",
+  AGENT_ID:
+    process.env.NEXT_PUBLIC_STACKSPOT_AGENT_ID || "01K5RTDWRXJFW8R9EGCRGGQ3XX",
+};
+
+interface StackSpotAuthResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+}
+
+interface StackSpotChatRequest {
+  streaming: boolean;
+  user_prompt: string;
+  stackspot_knowledge: boolean;
+  return_ks_in_response: boolean;
+  session_id?: string;
+}
+
+interface StackSpotChatResponse {
+  // Formato OpenAI (se usado)
+  id?: string;
+  object?: string;
+  created?: number;
+  model?: string;
+  choices?: {
+    index: number;
+    message: {
+      role: string;
+      content: string;
+    };
+    finish_reason: string;
+  }[];
+
+  // Formato StackSpot específico
+  message?: string;
+  stop_reason?: string;
+  tokens?: {
+    user: number;
+    enrichment: number;
+    output: number;
+  };
+  knowledge_source_id?: string[];
+  source?: string[];
+  cross_account_source?: string[];
+}
+
+// Cache do token e sessões (simples - em produção use Redis ou similar)
+let cachedToken: string | null = null;
+let tokenExpiry: number = 0;
+
+// Cache de sessões e histórico de conversas por IP/usuário
+const sessionCache = new Map<string, string>();
+const conversationHistory = new Map<string, ChatMessage[]>();
+
+async function authenticate(): Promise<string> {
+  // Verifica se o token ainda é válido
+  if (cachedToken && Date.now() < tokenExpiry) {
+    return cachedToken;
+  }
+
+  console.log("🔑 [SERVER] Autenticando com StackSpot...");
+  console.log(
+    "🔧 [SERVER] CLIENT_ID configurado:",
+    !!STACKSPOT_CONFIG.CLIENT_ID
+  );
+  console.log(
+    "🔧 [SERVER] CLIENT_SECRET configurado:",
+    !!STACKSPOT_CONFIG.CLIENT_SECRET
+  );
+  console.log("🔧 [SERVER] REALM:", STACKSPOT_CONFIG.REALM);
+
+  const authUrl = `${STACKSPOT_CONFIG.IDM_URL}/${STACKSPOT_CONFIG.REALM}/oidc/oauth/token`;
+
+  const formData = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: STACKSPOT_CONFIG.CLIENT_ID,
+    client_secret: STACKSPOT_CONFIG.CLIENT_SECRET,
+  });
+
+  const response = await fetch(authUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(
+      "❌ [SERVER] Erro na autenticação:",
+      response.status,
+      errorText
+    );
+    throw new Error(
+      `Erro na autenticação: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const authData: StackSpotAuthResponse = await response.json();
+  console.log("✅ [SERVER] Autenticação bem-sucedida!");
+
+  cachedToken = authData.access_token;
+  tokenExpiry = Date.now() + authData.expires_in * 1000 - 60000; // 1 min de margem
+
+  return cachedToken;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    console.log("🚀 [SERVER] Nova requisição de chat recebida");
+
+    // Extrai a mensagem do body
+    const { message } = await request.json();
+
+    if (!message) {
+      return NextResponse.json(
+        { error: "Mensagem é obrigatória" },
+        { status: 400 }
+      );
+    }
+
+    console.log("📝 [SERVER] Mensagem do usuário:", message);
+
+    // Gera ou recupera session_id baseado no IP (para manter contexto)
+    const clientIP =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      "anonymous";
+    let sessionId = sessionCache.get(clientIP);
+
+    if (!sessionId) {
+      sessionId = `session_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(7)}`;
+      sessionCache.set(clientIP, sessionId);
+      conversationHistory.set(sessionId, []);
+      console.log("🆕 [SERVER] Nova sessão criada:", sessionId);
+    } else {
+      console.log("🔄 [SERVER] Usando sessão existente:", sessionId);
+    }
+
+    // Recupera e atualiza histórico da conversa
+    const history = conversationHistory.get(sessionId) || [];
+
+    // Adiciona mensagem do usuário ao histórico
+    const userMessage: ChatMessage = {
+      role: "user",
+      content: message,
+      timestamp: Date.now(),
+    };
+    history.push(userMessage);
+
+    // Monta contexto da conversa (últimas 6 mensagens para não sobrecarregar)
+    const recentHistory = history.slice(-6);
+    const conversationContext = recentHistory
+      .map(
+        (msg) =>
+          `${msg.role === "user" ? "Usuário" : "Assistente"}: ${msg.content}`
+      )
+      .join("\n\n");
+
+    console.log("📚 [SERVER] Contexto da conversa:", conversationContext);
+
+    // Verifica se as credenciais estão configuradas
+    if (
+      !STACKSPOT_CONFIG.CLIENT_ID ||
+      !STACKSPOT_CONFIG.CLIENT_SECRET ||
+      !STACKSPOT_CONFIG.REALM
+    ) {
+      console.warn("⚠️ [SERVER] Credenciais não configuradas");
+      return NextResponse.json({
+        response: `[MODO FALLBACK] Sobre "${message}": Como especialista em orientação de carreira, posso te ajudar com desenvolvimento profissional, planejamento de carreira, transições e habilidades técnicas. Esta é uma resposta simulada - configure suas credenciais StackSpot para respostas personalizadas.`,
+        source: "fallback",
+      });
+    }
+
+    // Autentica
+    const token = await authenticate();
+
+    // Prepara prompt com contexto da conversa
+    const contextualPrompt =
+      recentHistory.length > 1
+        ? `Contexto da conversa anterior:\n${conversationContext}\n\nNova mensagem do usuário: ${message}\n\nPor favor, continue a conversa baseado no contexto acima, mantendo a personalização e o fluxo natural da conversa.`
+        : message;
+
+    console.log("🧠 [SERVER] Prompt contextual:", contextualPrompt);
+
+    // Prepara a requisição para o agente (com contexto para manter conversa)
+    const requestBody: StackSpotChatRequest = {
+      streaming: false,
+      user_prompt: contextualPrompt,
+      stackspot_knowledge: true,
+      return_ks_in_response: true,
+      session_id: sessionId,
+    };
+
+    const chatUrl = `${STACKSPOT_CONFIG.INFERENCE_URL}/v1/agent/${STACKSPOT_CONFIG.AGENT_ID}/chat`;
+
+    console.log("🚀 [SERVER] Enviando para agente:", STACKSPOT_CONFIG.AGENT_ID);
+    console.log("📤 [SERVER] URL:", chatUrl);
+    console.log("🔗 [SERVER] Session ID:", sessionId);
+    console.log("📦 [SERVER] Payload:", JSON.stringify(requestBody, null, 2));
+
+    const chatResponse = await fetch(chatUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!chatResponse.ok) {
+      const errorText = await chatResponse.text();
+      console.error(
+        "❌ [SERVER] Erro na API StackSpot:",
+        chatResponse.status,
+        errorText
+      );
+
+      return NextResponse.json(
+        {
+          error: `Erro na API StackSpot: ${chatResponse.status} - ${errorText}`,
+          source: "stackspot-error",
+        },
+        { status: chatResponse.status }
+      );
+    }
+
+    const chatData: StackSpotChatResponse = await chatResponse.json();
+    console.log("✅ [SERVER] Resposta recebida do StackSpot");
+    console.log("📥 [SERVER] Dados:", JSON.stringify(chatData, null, 2));
+
+    // Extrai a resposta - a API StackSpot pode retornar formatos diferentes
+    let agentResponse: string;
+
+    if (chatData.choices && chatData.choices.length > 0) {
+      // Formato padrão OpenAI
+      agentResponse = chatData.choices[0].message.content;
+    } else if (chatData.message) {
+      // Formato StackSpot direto
+      agentResponse = chatData.message;
+    } else {
+      console.error("❌ [SERVER] Formato de resposta inesperado:", chatData);
+      return NextResponse.json(
+        { error: "Formato de resposta inválido da API StackSpot" },
+        { status: 500 }
+      );
+    }
+
+    console.log(
+      "🎯 [SERVER] Resposta do seu agente personalizado:",
+      agentResponse
+    );
+
+    // Adiciona resposta do agente ao histórico
+    const assistantMessage: ChatMessage = {
+      role: "assistant",
+      content: agentResponse,
+      timestamp: Date.now(),
+    };
+    history.push(assistantMessage);
+    conversationHistory.set(sessionId, history);
+
+    console.log(
+      "💾 [SERVER] Histórico atualizado com",
+      history.length,
+      "mensagens"
+    );
+
+    return NextResponse.json({
+      response: agentResponse,
+      source: "stackspot-agent",
+      agent_id: STACKSPOT_CONFIG.AGENT_ID,
+      tokens_used: chatData.tokens || null,
+      session_id: sessionId,
+      conversation_length: history.length, // Para debug
+    });
+  } catch (error) {
+    console.error("❌ [SERVER] Erro geral:", error);
+
+    return NextResponse.json(
+      {
+        response: `Desculpe, ocorreu um erro ao processar sua mensagem. Erro: ${
+          error instanceof Error ? error.message : "Erro desconhecido"
+        }`,
+        source: "error-fallback",
+      },
+      { status: 500 }
+    );
+  }
+}
