@@ -393,8 +393,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Função para formatar a resposta com melhor estrutura
+    function formatResponse(text: string): string {
+      let formatted = text;
+      
+      // Remove múltiplos espaços e quebras de linha desnecessárias
+      formatted = formatted.replace(/\s+/g, ' ').trim();
+      
+      // Adiciona quebras de linha antes de títulos/seções principais
+      formatted = formatted.replace(/([.!?:]) ([A-Z][^:]*:)/g, '$1\n\n**$2**');
+      
+      // Adiciona quebras de linha antes de listas com hífen
+      formatted = formatted.replace(/([.!?]) (- [^-])/g, '$1\n\n$2');
+      
+      // Formata listas com hífen
+      formatted = formatted.replace(/ - /g, '\n• ');
+      
+      // Adiciona quebras de linha antes de links de referência
+      formatted = formatted.replace(/([.!?]) (\[🔗)/g, '$1\n\n$2');
+      
+      // Separa parágrafos principais
+      formatted = formatted.replace(/([.!?]) ([A-Z][a-z]+ (e |de |da |do |na |no |em |com |para |sobre |que |esse|essas|esses))/g, '$1\n\n$2');
+      
+      // Adiciona espaçamento antes de perguntas finais
+      formatted = formatted.replace(/([.!?]) (Quer que|Qual|Como|Posso|Gostaria)/g, '$1\n\n$2');
+      
+      // Adiciona espaçamento antes de resumos
+      formatted = formatted.replace(/([.!?]) (Resumo|Em resumo|Para resumir)/g, '$1\n\n**$2**');
+      
+      // Formata valores monetários e números
+      formatted = formatted.replace(/R\$ /g, '\n💰 **R$ ');
+      formatted = formatted.replace(/(\d+%)/g, '**$1**');
+      
+      // Adiciona ícones em seções específicas
+      formatted = formatted.replace(/\*\*Cursos e caminhos/g, '🎓 **Cursos e caminhos');
+      formatted = formatted.replace(/\*\*Mercado e tendências/g, '📈 **Mercado e tendências');
+      formatted = formatted.replace(/\*\*Média salarial/g, '💰 **Média salarial');
+      
+      return formatted;
+    }
+
+    // Aplica a formatação na resposta
+    agentResponse = formatResponse(agentResponse);
+
     console.log(
-      "🎯 [SERVER] Resposta do seu agente personalizado:",
+      "🎯 [SERVER] Resposta do seu agente personalizado (formatada):",
       agentResponse
     );
 
