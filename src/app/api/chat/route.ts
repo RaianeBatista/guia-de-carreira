@@ -233,8 +233,45 @@ export async function POST(request: NextRequest) {
       `✅ [SERVER] Mensagem do usuário adicionada. Total: ${history.length} mensagens`
     );
 
-    // Monta contexto da conversa (últimas 8 mensagens para não sobrecarregar)
-    const recentHistory = history.slice(-8);
+    // Extrai informações importantes do histórico completo
+    const extractPersonalInfo = (messages: ChatMessage[]) => {
+      const personalInfo: string[] = [];
+      const keywords = [
+        "faculdade",
+        "universidade",
+        "curso",
+        "formação",
+        "graduação",
+        "trabalho",
+        "emprego",
+        "empresa",
+        "profissão",
+        "cargo",
+        "idade",
+        "ano",
+        "semestre",
+        "período",
+        "estudando",
+        "fazendo",
+      ];
+
+      messages.forEach((msg) => {
+        if (msg.role === "user") {
+          keywords.forEach((keyword) => {
+            if (msg.content.toLowerCase().includes(keyword)) {
+              personalInfo.push(`• ${msg.content}`);
+            }
+          });
+        }
+      });
+
+      return [...new Set(personalInfo)]; // Remove duplicatas
+    };
+
+    const personalContext = extractPersonalInfo(history);
+
+    // Monta contexto da conversa (últimas 10 mensagens para melhor contexto)
+    const recentHistory = history.slice(-10);
     const conversationContext = recentHistory
       .map(
         (msg: ChatMessage) =>
@@ -246,6 +283,10 @@ export async function POST(request: NextRequest) {
       "📚 [SERVER] Contexto montado com",
       recentHistory.length,
       "mensagens:"
+    );
+    console.log(
+      "👤 [SERVER] Informações pessoais identificadas:",
+      personalContext.length
     );
     console.log(
       "📝 [SERVER] Contexto completo:",
@@ -268,11 +309,24 @@ export async function POST(request: NextRequest) {
     // Autentica
     const token = await authenticate();
 
-    // Prepara prompt com contexto da conversa
-    const contextualPrompt =
-      recentHistory.length > 1
-        ? `Contexto da conversa anterior:\n${conversationContext}\n\nNova mensagem do usuário: ${message}\n\nPor favor, continue a conversa baseado no contexto acima, mantendo a personalização e o fluxo natural da conversa.`
-        : message;
+    // Prepara prompt com contexto estruturado da conversa
+    let contextualPrompt = message;
+
+    if (recentHistory.length > 1) {
+      let prompt = `INSTRUÇÕES: Você é o Guia de Carreiras da StackSpot. Mantenha sempre o contexto da conversa e lembre-se das informações que o usuário compartilhou.\n\n`;
+
+      if (personalContext.length > 0) {
+        prompt += `INFORMAÇÕES IMPORTANTES DO USUÁRIO:\n${personalContext.join(
+          "\n"
+        )}\n\n`;
+      }
+
+      prompt += `HISTÓRICO DA CONVERSA:\n${conversationContext}\n\n`;
+      prompt += `NOVA PERGUNTA: ${message}\n\n`;
+      prompt += `IMPORTANTE: Baseie sua resposta no contexto acima. Se o usuário fizer uma pergunta sobre algo que ele já mencionou (como "qual faculdade estou fazendo?"), use as informações do histórico da conversa para responder adequadamente.`;
+
+      contextualPrompt = prompt;
+    }
 
     console.log("🧠 [SERVER] Prompt contextual:", contextualPrompt);
 
