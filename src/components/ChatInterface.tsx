@@ -88,8 +88,8 @@ const ChatInterface: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header integrado */}
+    <div className="flex flex-col h-full">
+      {/* Título centralizado */}
       <div className="text-center py-8 px-6">
         <h1 className="text-5xl font-bold text-white mb-4">
           Guia de Carreira ZUP Camp AI
