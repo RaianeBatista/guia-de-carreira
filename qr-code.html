@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code - Guia de Carreira ZUP Camp AI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            background: rgba(55, 65, 81, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            color: #d1d5db;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+        .qr-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .qr-code {
+            max-width: 100%;
+            height: auto;
+        }
+        .url {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-top: 20px;
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+        .url:hover {
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+        }
+        .instructions {
+            margin-top: 25px;
+            color: #9ca3af;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: #3b82f6;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                    <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+            </div>
+            <h1>Guia de Carreira ZUP Camp AI</h1>
+        </div>
+        
+        <p class="subtitle">Escaneie o QR Code para acessar a aplicação</p>
+        
+        <div class="qr-container">
+            <img 
+                src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://guia-de-carreira.vercel.app/" 
+                alt="QR Code para Guia de Carreira ZUP Camp AI" 
+                class="qr-code"
+            />
+        </div>
+        
+        <a href="https://guia-de-carreira.vercel.app/" target="_blank" class="url">
+            🔗 https://guia-de-carreira.vercel.app/
+        </a>
+        
+        <div class="instructions">
+            <p>📱 <strong>Como usar:</strong></p>
+            <p>1. Abra a câmera do seu celular</p>
+            <p>2. Aponte para o QR Code acima</p>
+            <p>3. Toque na notificação que aparecer</p>
+            <p>4. Acesse a aplicação diretamente no seu dispositivo!</p>
+        </div>
+    </div>
+</body>
+</html>
