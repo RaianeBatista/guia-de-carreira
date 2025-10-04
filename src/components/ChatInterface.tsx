@@ -29,6 +29,22 @@ const ChatInterface: React.FC = () => {
   // Instância do serviço StackSpot
   const stackSpotService = StackSpotService.getInstance();
 
+  // Função para formatar o texto das mensagens do assistente
+  const formatAssistantMessage = (text: string): string => {
+    // Remove asteriscos duplos (negrito markdown)
+    let formattedText = text.replace(/\*\*(.*?)\*\*/g, "$1");
+
+    // Remove asteriscos simples
+    formattedText = formattedText.replace(/\*(.*?)\*/g, "$1");
+
+    // Divide em parágrafos baseado em pontuação final seguida de espaço e letra maiúscula
+    // ou dois pontos seguidos de espaço
+    formattedText = formattedText.replace(/([.!?])\s+([A-ZÁÊÇÕ])/g, "$1\n\n$2");
+    formattedText = formattedText.replace(/(:)\s+([A-ZÁÊÇÕ])/g, "$1\n\n$2");
+
+    return formattedText;
+  };
+
   // Função para enviar mensagem e obter resposta do agente StackSpot
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -131,7 +147,15 @@ const ChatInterface: React.FC = () => {
                   }`}
                 >
                   <div className="text-base leading-relaxed">
-                    {message.content}
+                    {message.sender === "assistant"
+                      ? formatAssistantMessage(message.content)
+                          .split("\n\n")
+                          .map((paragraph, index) => (
+                            <p key={index} className={index > 0 ? "mt-3" : ""}>
+                              {paragraph}
+                            </p>
+                          ))
+                      : message.content}
                   </div>
                   <div className="text-xs opacity-70 mt-2">
                     {message.timestamp.toLocaleTimeString("pt-BR", {
