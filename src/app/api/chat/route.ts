@@ -67,8 +67,23 @@ let cachedToken: string | null = null;
 let tokenExpiry: number = 0;
 
 // Cache de sessões e histórico de conversas por IP/usuário
-const sessionCache = new Map<string, string>();
+// Aumentando TTL e melhorando gestão de memória
+const sessionCache = new Map<string, { sessionId: string; lastAccess: number }>();
 const conversationHistory = new Map<string, ChatMessage[]>();
+
+// Limpa sessões antigas (TTL de 2 horas)
+const SESSION_TTL = 2 * 60 * 60 * 1000; // 2 horas
+
+function cleanOldSessions() {
+  const now = Date.now();
+  for (const [ip, data] of sessionCache.entries()) {
+    if (now - data.lastAccess > SESSION_TTL) {
+      sessionCache.delete(ip);
+      conversationHistory.delete(data.sessionId);
+      console.log(`🧹 [SERVER] Sessão expirada removida: ${data.sessionId}`);
+    }
+  }
+}
 
 async function authenticate(): Promise<string> {
   // Verifica se o token ainda é válido
@@ -140,26 +155,48 @@ export async function POST(request: NextRequest) {
 
     console.log("📝 [SERVER] Mensagem do usuário:", message);
 
-    // Gera ou recupera session_id baseado no IP (para manter contexto)
+    // Limpa sessões antigas periodicamente
+    cleanOldSessions();
+
+    // Gera ou recupera session_id baseado no Client ID ou IP (para manter contexto)
+    const clientId = request.headers.get("X-Client-ID");
     const clientIP =
       request.headers.get("x-forwarded-for") ||
       request.headers.get("x-real-ip") ||
-      "anonymous";
-    let sessionId = sessionCache.get(clientIP);
+      "anonymous_" + Math.random().toString(36).substring(7);
+    
+    const sessionKey = clientId || clientIP;
+    console.log("🔍 [SERVER] Cliente identificado:", sessionKey, clientId ? "(Client ID)" : "(IP)");
+    
+    let sessionData = sessionCache.get(sessionKey);
+    let sessionId: string;
 
-    if (!sessionId) {
+    if (!sessionData) {
       sessionId = `session_${Date.now()}_${Math.random()
         .toString(36)
         .substring(7)}`;
-      sessionCache.set(clientIP, sessionId);
+      sessionData = { sessionId, lastAccess: Date.now() };
+      sessionCache.set(sessionKey, sessionData);
       conversationHistory.set(sessionId, []);
-      console.log("🆕 [SERVER] Nova sessão criada:", sessionId);
+      console.log("🆕 [SERVER] Nova sessão criada:", sessionId, "para cliente:", sessionKey);
     } else {
-      console.log("🔄 [SERVER] Usando sessão existente:", sessionId);
+      sessionId = sessionData.sessionId;
+      sessionData.lastAccess = Date.now();
+      sessionCache.set(sessionKey, sessionData);
+      console.log("🔄 [SERVER] Usando sessão existente:", sessionId, "para cliente:", sessionKey);
     }
 
     // Recupera e atualiza histórico da conversa
     const history = conversationHistory.get(sessionId) || [];
+    console.log(`📚 [SERVER] Histórico atual da sessão ${sessionId}:`, history.length, "mensagens");
+    
+    // Log do histórico existente para debug
+    if (history.length > 0) {
+      console.log("📖 [SERVER] Últimas mensagens do histórico:");
+      history.slice(-3).forEach((msg: ChatMessage, idx: number) => {
+        console.log(`   ${idx + 1}. [${msg.role}]: ${msg.content.substring(0, 50)}...`);
+      });
+    }
 
     // Adiciona mensagem do usuário ao histórico
     const userMessage: ChatMessage = {
@@ -168,17 +205,20 @@ export async function POST(request: NextRequest) {
       timestamp: Date.now(),
     };
     history.push(userMessage);
+    conversationHistory.set(sessionId, history);
+    console.log(`✅ [SERVER] Mensagem do usuário adicionada. Total: ${history.length} mensagens`);
 
-    // Monta contexto da conversa (últimas 6 mensagens para não sobrecarregar)
-    const recentHistory = history.slice(-6);
+    // Monta contexto da conversa (últimas 8 mensagens para não sobrecarregar)
+    const recentHistory = history.slice(-8);
     const conversationContext = recentHistory
       .map(
-        (msg) =>
+        (msg: ChatMessage) =>
           `${msg.role === "user" ? "Usuário" : "Assistente"}: ${msg.content}`
       )
       .join("\n\n");
 
-    console.log("📚 [SERVER] Contexto da conversa:", conversationContext);
+    console.log("📚 [SERVER] Contexto montado com", recentHistory.length, "mensagens:");
+    console.log("📝 [SERVER] Contexto completo:", conversationContext.substring(0, 200) + "...");
 
     // Verifica se as credenciais estão configuradas
     if (

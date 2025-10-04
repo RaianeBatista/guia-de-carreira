@@ -3,6 +3,7 @@
 
 export class StackSpotService {
   private static instance: StackSpotService;
+  private sessionId: string | null = null;
 
   static getInstance(): StackSpotService {
     if (!StackSpotService.instance) {
@@ -11,11 +12,30 @@ export class StackSpotService {
     return StackSpotService.instance;
   }
 
+  // Gera um ID único para o cliente para melhor rastreamento de sessão
+  private getClientId(): string {
+    if (typeof window !== 'undefined') {
+      let clientId = localStorage.getItem('stackspot_client_id');
+      if (!clientId) {
+        clientId = `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        localStorage.setItem('stackspot_client_id', clientId);
+        console.log('🆕 [CLIENT] Novo Client ID gerado:', clientId);
+      } else {
+        console.log('🔄 [CLIENT] Client ID existente:', clientId);
+      }
+      return clientId;
+    }
+    return `client_anonymous_${Math.random().toString(36).substring(7)}`;
+  }
+
   async sendMessage(message: string): Promise<string> {
     console.log(
       "🚀 [CLIENT] Enviando mensagem para StackSpot Agent via API route"
     );
     console.log("📝 [CLIENT] Mensagem do usuário:", message);
+
+    const clientId = this.getClientId();
+    console.log("🔑 [CLIENT] Usando Client ID:", clientId);
 
     try {
       // Envia para nossa API route no servidor (onde as credenciais estão seguras)
@@ -23,6 +43,7 @@ export class StackSpotService {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Client-ID": clientId, // Adiciona header com ID do cliente
         },
         body: JSON.stringify({ message }),
       });
