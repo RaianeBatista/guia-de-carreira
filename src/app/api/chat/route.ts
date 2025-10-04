@@ -68,7 +68,10 @@ let tokenExpiry: number = 0;
 
 // Cache de sessões e histórico de conversas por IP/usuário
 // Aumentando TTL e melhorando gestão de memória
-const sessionCache = new Map<string, { sessionId: string; lastAccess: number }>();
+const sessionCache = new Map<
+  string,
+  { sessionId: string; lastAccess: number }
+>();
 const conversationHistory = new Map<string, ChatMessage[]>();
 
 // Limpa sessões antigas (TTL de 2 horas)
@@ -164,10 +167,14 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for") ||
       request.headers.get("x-real-ip") ||
       "anonymous_" + Math.random().toString(36).substring(7);
-    
+
     const sessionKey = clientId || clientIP;
-    console.log("🔍 [SERVER] Cliente identificado:", sessionKey, clientId ? "(Client ID)" : "(IP)");
-    
+    console.log(
+      "🔍 [SERVER] Cliente identificado:",
+      sessionKey,
+      clientId ? "(Client ID)" : "(IP)"
+    );
+
     let sessionData = sessionCache.get(sessionKey);
     let sessionId: string;
 
@@ -178,23 +185,39 @@ export async function POST(request: NextRequest) {
       sessionData = { sessionId, lastAccess: Date.now() };
       sessionCache.set(sessionKey, sessionData);
       conversationHistory.set(sessionId, []);
-      console.log("🆕 [SERVER] Nova sessão criada:", sessionId, "para cliente:", sessionKey);
+      console.log(
+        "🆕 [SERVER] Nova sessão criada:",
+        sessionId,
+        "para cliente:",
+        sessionKey
+      );
     } else {
       sessionId = sessionData.sessionId;
       sessionData.lastAccess = Date.now();
       sessionCache.set(sessionKey, sessionData);
-      console.log("🔄 [SERVER] Usando sessão existente:", sessionId, "para cliente:", sessionKey);
+      console.log(
+        "🔄 [SERVER] Usando sessão existente:",
+        sessionId,
+        "para cliente:",
+        sessionKey
+      );
     }
 
     // Recupera e atualiza histórico da conversa
     const history = conversationHistory.get(sessionId) || [];
-    console.log(`📚 [SERVER] Histórico atual da sessão ${sessionId}:`, history.length, "mensagens");
-    
+    console.log(
+      `📚 [SERVER] Histórico atual da sessão ${sessionId}:`,
+      history.length,
+      "mensagens"
+    );
+
     // Log do histórico existente para debug
     if (history.length > 0) {
       console.log("📖 [SERVER] Últimas mensagens do histórico:");
       history.slice(-3).forEach((msg: ChatMessage, idx: number) => {
-        console.log(`   ${idx + 1}. [${msg.role}]: ${msg.content.substring(0, 50)}...`);
+        console.log(
+          `   ${idx + 1}. [${msg.role}]: ${msg.content.substring(0, 50)}...`
+        );
       });
     }
 
@@ -206,7 +229,9 @@ export async function POST(request: NextRequest) {
     };
     history.push(userMessage);
     conversationHistory.set(sessionId, history);
-    console.log(`✅ [SERVER] Mensagem do usuário adicionada. Total: ${history.length} mensagens`);
+    console.log(
+      `✅ [SERVER] Mensagem do usuário adicionada. Total: ${history.length} mensagens`
+    );
 
     // Monta contexto da conversa (últimas 8 mensagens para não sobrecarregar)
     const recentHistory = history.slice(-8);
@@ -217,8 +242,15 @@ export async function POST(request: NextRequest) {
       )
       .join("\n\n");
 
-    console.log("📚 [SERVER] Contexto montado com", recentHistory.length, "mensagens:");
-    console.log("📝 [SERVER] Contexto completo:", conversationContext.substring(0, 200) + "...");
+    console.log(
+      "📚 [SERVER] Contexto montado com",
+      recentHistory.length,
+      "mensagens:"
+    );
+    console.log(
+      "📝 [SERVER] Contexto completo:",
+      conversationContext.substring(0, 200) + "..."
+    );
 
     // Verifica se as credenciais estão configuradas
     if (

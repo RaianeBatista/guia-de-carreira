@@ -131,7 +131,7 @@ const ChatInterface: React.FC = () => {
           {isLoading && (
             <div className="flex justify-start">
               <div className="bg-gray-700 text-white px-6 py-4 rounded-3xl max-w-2xl mr-16">
-                <div className="flex items-center space-x-2">
+                <div className="flex justify-center">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"></div>
                     <div
@@ -143,7 +143,6 @@ const ChatInterface: React.FC = () => {
                       style={{ animationDelay: "0.2s" }}
                     ></div>
                   </div>
-                  <span className="text-sm">Digitando...</span>
                 </div>
               </div>
             </div>
