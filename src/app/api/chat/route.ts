@@ -161,18 +161,18 @@ export async function POST(request: NextRequest) {
     // Limpa sessões antigas periodicamente
     cleanOldSessions();
 
-    // Gera ou recupera session_id baseado no Client ID ou IP (para manter contexto)
-    const clientId = request.headers.get("X-Client-ID");
+    // Gera ou recupera session_id baseado no Session ID do cliente (nova sessão a cada F5)
+    const clientSessionId = request.headers.get("X-Session-ID");
     const clientIP =
       request.headers.get("x-forwarded-for") ||
       request.headers.get("x-real-ip") ||
       "anonymous_" + Math.random().toString(36).substring(7);
 
-    const sessionKey = clientId || clientIP;
+    const sessionKey = clientSessionId || clientIP;
     console.log(
-      "🔍 [SERVER] Cliente identificado:",
+      "🔍 [SERVER] Sessão identificada:",
       sessionKey,
-      clientId ? "(Client ID)" : "(IP)"
+      clientSessionId ? "(Session ID)" : "(IP Fallback)"
     );
 
     let sessionData = sessionCache.get(sessionKey);

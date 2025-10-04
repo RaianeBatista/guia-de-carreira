@@ -46,9 +46,9 @@ const ChatInterface: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Para primeira interação, adiciona contexto para ativar o agente adequadamente
+      // Para primeira interação, envia prompt inicial específico para ativar o agente
       const messageToSend = isFirstInteraction
-        ? `Olá! ${currentMessage}` // Adiciona saudação simples
+        ? `Você é o Guia de Carreiras da StackSpot, um assistente especializado em orientação profissional. Sua função é ajudar usuários com questões sobre carreira, desenvolvimento profissional, transições de carreira, habilidades técnicas e planejamento profissional. Seja sempre cordial, profissional e ofereça orientações práticas e personalizadas. Primeira pergunta do usuário: ${currentMessage}`
         : currentMessage;
 
       const response = await stackSpotService.sendMessage(messageToSend);

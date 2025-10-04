@@ -2,7 +2,7 @@ import React from "react";
 
 const Header: React.FC = () => {
   return (
-    <header className="bg-transparent">
+    <header className="bg-gray-900/90 backdrop-blur-sm border-b border-gray-700/50">
       <div className="flex items-center justify-between px-6 py-4">
         {/* Logo e nome - lado esquerdo */}
         <div className="flex items-center space-x-3">
