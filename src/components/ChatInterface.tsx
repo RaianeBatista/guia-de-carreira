@@ -11,16 +11,8 @@ interface Message {
 }
 
 const ChatInterface: React.FC = () => {
-  // Inicia com mensagem de boas-vindas do assistente conforme a imagem
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      content:
-        "Olá! Eu sou o Guia de Carreiras, um assistente criado para te ajudar a encontrar um caminho profissional que combine com você. Para começarmos, preciso entender seu momento atual. Você está na fase de escolher uma profissão pela primeira vez, talvez terminando a escola, ou já tem uma carreira e está pensando em mudar de área?",
-      sender: "assistant",
-      timestamp: new Date(),
-    },
-  ]);
+  // Inicia com array vazio - usuário deve iniciar a conversa
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFirstInteraction, setIsFirstInteraction] = useState(true);
@@ -96,36 +88,61 @@ const ChatInterface: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-screen">
+      {/* Header integrado */}
+      <div className="text-center py-8 px-6">
+        <h1 className="text-5xl font-bold text-white mb-4">
+          Guia de Carreira ZUP Camp AI
+        </h1>
+        <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          Seu assistente especializado em orientação profissional. Tire suas
+          dúvidas sobre carreira, desenvolvimento profissional e muito mais!
+        </p>
+      </div>
+
       {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto px-6 py-8">
+      <div className="flex-1 overflow-y-auto px-6 pb-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div
-                className={`max-w-2xl px-6 py-4 rounded-3xl ${
-                  message.sender === "user"
-                    ? "bg-blue-500 text-white ml-16"
-                    : "bg-gray-700 text-white mr-16"
-                }`}
-              >
-                <div className="text-base leading-relaxed">
-                  {message.content}
-                </div>
-                <div className="text-xs opacity-70 mt-2">
-                  {message.timestamp.toLocaleTimeString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
+          {messages.length === 0 ? (
+            <div className="flex justify-center pt-12">
+              <div className="text-center text-gray-400">
+                <p className="text-lg mb-2">
+                  Bem-vindo ao Guia de Carreira! 👋
+                </p>
+                <p className="text-sm">
+                  Digite uma pergunta sobre sua carreira para começar nossa
+                  conversa
+                </p>
               </div>
             </div>
-          ))}
+          ) : (
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${
+                  message.sender === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-2xl px-6 py-4 rounded-3xl ${
+                    message.sender === "user"
+                      ? "bg-blue-500 text-white ml-16"
+                      : "bg-gray-700 text-white mr-16"
+                  }`}
+                >
+                  <div className="text-base leading-relaxed">
+                    {message.content}
+                  </div>
+                  <div className="text-xs opacity-70 mt-2">
+                    {message.timestamp.toLocaleTimeString("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
 
           {/* Loading indicator */}
           {isLoading && (
