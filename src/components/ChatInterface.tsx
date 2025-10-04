@@ -116,56 +116,65 @@ const ChatInterface: React.FC = () => {
                 Sou seu assistente especializado em orientação profissional
               </p>
               <p className="text-sm text-gray-400">
-                Digite uma pergunta sobre sua carreira para começar nossa conversa
+                Digite uma pergunta sobre sua carreira para começar nossa
+                conversa
               </p>
             </div>
           </div>
         )}
 
-        {/* Mensagens - Layout full width alternado */}
-        <div className="space-y-0">
-          {messages.map((message, index) => (
+        {/* Mensagens - Layout com containers separados como na imagem */}
+        <div className="space-y-4 p-4 max-w-4xl mx-auto">
+          {messages.map((message) => (
             <div
               key={message.id}
-              className={`w-full py-6 px-4 ${
-                message.sender === "user"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-              } ${index === 0 ? "border-t border-gray-200 dark:border-gray-700" : ""}`}
+              className={`flex ${
+                message.sender === "user" ? "justify-end" : "justify-start"
+              }`}
             >
-              <div className="max-w-4xl mx-auto">
-                <div className="text-right mb-1">
-                  <span className="text-xs opacity-70">
-                    {message.timestamp.toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-                <div className="text-sm leading-relaxed">
+              <div
+                className={`max-w-lg p-4 rounded-lg ${
+                  message.sender === "user"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-700 dark:bg-gray-600 text-white"
+                }`}
+              >
+                <div className="text-sm leading-relaxed mb-1">
                   {message.content}
+                </div>
+                <div className="text-xs opacity-70 text-right">
+                  {message.timestamp.toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-          {/* Loading indicator */}
-          {isLoading && (
-            <div className="w-full py-6 px-4 bg-gray-100 dark:bg-gray-700">
-              <div className="max-w-4xl mx-auto">
-                <div className="flex items-center space-x-2 text-gray-500">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                  </div>
-                  <span className="text-sm">Digitando...</span>
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex justify-start px-4 max-w-4xl mx-auto">
+            <div className="bg-gray-700 dark:bg-gray-600 text-white p-4 rounded-lg max-w-lg">
+              <div className="flex items-center space-x-2">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"></div>
+                  <div
+                    className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.1s" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
                 </div>
+                <span className="text-sm">Digitando...</span>
               </div>
             </div>
-          )}
-        
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -208,7 +217,7 @@ const ChatInterface: React.FC = () => {
               )}
             </button>
           </div>
-          
+
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
             Pressione Enter para enviar • Shift+Enter para nova linha
           </p>
