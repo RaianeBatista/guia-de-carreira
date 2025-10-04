@@ -1,9 +1,11 @@
-import React from 'react';
-import Image from 'next/image';
+import React from "react";
+import Image from "next/image";
 
 const QRCodePage: React.FC = () => {
-  const appUrl = 'https://guia-de-carreira.vercel.app/';
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(appUrl)}`;
+  const appUrl = "https://guia-de-carreira.vercel.app/";
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+    appUrl
+  )}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-6">
@@ -25,9 +27,7 @@ const QRCodePage: React.FC = () => {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white">
-              Guia de Carreira
-            </h1>
+            <h1 className="text-2xl font-bold text-white">Guia de Carreira</h1>
           </div>
           <p className="text-gray-300 mb-6">
             Escaneie o QR Code para acessar a aplicação
@@ -55,7 +55,9 @@ const QRCodePage: React.FC = () => {
         </a>
 
         <div className="text-gray-400 text-sm">
-          <p className="mb-2">📱 <strong>Como usar:</strong></p>
+          <p className="mb-2">
+            📱 <strong>Como usar:</strong>
+          </p>
           <p>1. Abra a câmera do celular</p>
           <p>2. Aponte para o QR Code</p>
           <p>3. Toque na notificação</p>
