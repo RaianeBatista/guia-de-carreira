@@ -8,10 +8,15 @@ const STACKSPOT_CONFIG = {
     process.env.NEXT_PUBLIC_STACKSPOT_INFERENCE_URL ||
     "https://genai-inference-app.stackspot.com",
   REALM: process.env.NEXT_PUBLIC_STACKSPOT_REALM || "",
-  CLIENT_ID: process.env.STACKSPOT_CLIENT_ID || "",
-  CLIENT_SECRET: process.env.STACKSPOT_CLIENT_SECRET || "",
+  CLIENT_ID: process.env.STACKSPOT_CLIENT_ID || process.env.CLIENT_ID || "",
+  // Accept STACKSPOT_CLIENT_SECRET, or the shell-style CLIENT_KEY (from your example)
+  CLIENT_SECRET:
+    process.env.STACKSPOT_CLIENT_SECRET ||
+    process.env.CLIENT_KEY ||
+    process.env.STACKSPOT_CLIENT_KEY ||
+    "",
   AGENT_ID:
-    process.env.NEXT_PUBLIC_STACKSPOT_AGENT_ID || "01K5RTDWRXJFW8R9EGCRGGQ3XX",
+    process.env.NEXT_PUBLIC_STACKSPOT_AGENT_ID || "01K6ZWYVPGWF3B6DPPAJA31V78",
 };
 
 interface StackSpotAuthResponse {
@@ -396,40 +401,58 @@ export async function POST(request: NextRequest) {
     // Função para formatar a resposta com melhor estrutura
     function formatResponse(text: string): string {
       let formatted = text;
-      
+
       // Remove múltiplos espaços e quebras de linha desnecessárias
-      formatted = formatted.replace(/\s+/g, ' ').trim();
-      
+      formatted = formatted.replace(/\s+/g, " ").trim();
+
       // Adiciona quebras de linha antes de títulos/seções principais
-      formatted = formatted.replace(/([.!?:]) ([A-Z][^:]*:)/g, '$1\n\n**$2**');
-      
+      formatted = formatted.replace(/([.!?:]) ([A-Z][^:]*:)/g, "$1\n\n**$2**");
+
       // Adiciona quebras de linha antes de listas com hífen
-      formatted = formatted.replace(/([.!?]) (- [^-])/g, '$1\n\n$2');
-      
+      formatted = formatted.replace(/([.!?]) (- [^-])/g, "$1\n\n$2");
+
       // Formata listas com hífen
-      formatted = formatted.replace(/ - /g, '\n• ');
-      
+      formatted = formatted.replace(/ - /g, "\n• ");
+
       // Adiciona quebras de linha antes de links de referência
-      formatted = formatted.replace(/([.!?]) (\[🔗)/g, '$1\n\n$2');
-      
+      formatted = formatted.replace(/([.!?]) (\[🔗)/g, "$1\n\n$2");
+
       // Separa parágrafos principais
-      formatted = formatted.replace(/([.!?]) ([A-Z][a-z]+ (e |de |da |do |na |no |em |com |para |sobre |que |esse|essas|esses))/g, '$1\n\n$2');
-      
+      formatted = formatted.replace(
+        /([.!?]) ([A-Z][a-z]+ (e |de |da |do |na |no |em |com |para |sobre |que |esse|essas|esses))/g,
+        "$1\n\n$2"
+      );
+
       // Adiciona espaçamento antes de perguntas finais
-      formatted = formatted.replace(/([.!?]) (Quer que|Qual|Como|Posso|Gostaria)/g, '$1\n\n$2');
-      
+      formatted = formatted.replace(
+        /([.!?]) (Quer que|Qual|Como|Posso|Gostaria)/g,
+        "$1\n\n$2"
+      );
+
       // Adiciona espaçamento antes de resumos
-      formatted = formatted.replace(/([.!?]) (Resumo|Em resumo|Para resumir)/g, '$1\n\n**$2**');
-      
+      formatted = formatted.replace(
+        /([.!?]) (Resumo|Em resumo|Para resumir)/g,
+        "$1\n\n**$2**"
+      );
+
       // Formata valores monetários e números
-      formatted = formatted.replace(/R\$ /g, '\n💰 **R$ ');
-      formatted = formatted.replace(/(\d+%)/g, '**$1**');
-      
+      formatted = formatted.replace(/R\$ /g, "\n💰 **R$ ");
+      formatted = formatted.replace(/(\d+%)/g, "**$1**");
+
       // Adiciona ícones em seções específicas
-      formatted = formatted.replace(/\*\*Cursos e caminhos/g, '🎓 **Cursos e caminhos');
-      formatted = formatted.replace(/\*\*Mercado e tendências/g, '📈 **Mercado e tendências');
-      formatted = formatted.replace(/\*\*Média salarial/g, '💰 **Média salarial');
-      
+      formatted = formatted.replace(
+        /\*\*Cursos e caminhos/g,
+        "🎓 **Cursos e caminhos"
+      );
+      formatted = formatted.replace(
+        /\*\*Mercado e tendências/g,
+        "📈 **Mercado e tendências"
+      );
+      formatted = formatted.replace(
+        /\*\*Média salarial/g,
+        "💰 **Média salarial"
+      );
+
       return formatted;
     }
 
